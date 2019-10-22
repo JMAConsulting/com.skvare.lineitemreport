@@ -121,7 +121,7 @@ ORDER BY  cv.label
       'sequential' => 1,
       'id' => array('IN' => $ids),
       'is_active' => 1,
-      'options' => array('limit' => 1000),
+      'options' => array('limit' => 0),
     ));
 
     return $pricesets['values'];
@@ -306,8 +306,7 @@ ORDER BY  cv.label
    * @return     integer
    */
   public function checkPriceSetEntity($psId, $entityId) {
-    if (!isset($entityId))
-      return 0;
+    if (!isset($entityId)) return;
     if (is_array($entityId))
       $entityId = implode(',', $entityId);
     $query = "SELECT id FROM civicrm_price_set_entity WHERE price_set_id = $psId";
@@ -317,7 +316,6 @@ ORDER BY  cv.label
     $dao = CRM_Core_DAO::executeQuery($query);
     $entityCt = 0;
     while ($dao->fetch()) {
-      // CRM_Core_Error::debug($dao->id,'entityCt');
       $entityCt = $dao->id;
       return $entityCt;
     }
@@ -372,7 +370,7 @@ ORDER BY  cv.label
         $this->_priceField = TRUE;
         $pricesetId = array_pop(explode('_', $tableName));
 
-        // Check to see if price set is assigned to relevant to the entity. 
+        // Check to see if price set is assigned to relevant to the entity.
         // If not, remove the table from the select clause and continue
 
         switch ($this->_entity) {
@@ -392,7 +390,7 @@ ORDER BY  cv.label
           case 'contribution':
             $entityId = CRM_Utils_Request::retrieve('contribution_page_id_value', 'String');
             $relevantPriceSets = $this->checkPriceSetEntity($pricesetId, $entityId);
-            if (!$relevantPriceSets) {
+            if ($entityId && !$relevantPriceSets) {
               unset($table);
               continue 2;
             }
@@ -444,19 +442,6 @@ ORDER BY  cv.label
 
     $this->_select = "SELECT " . implode(', ', $select) . " ";
   }
-
-  /**
-   * @param $fields
-   * @param $files
-   * @param $self
-   *
-   * @return array
-   */
-  public static function formRule($fields, $files, $self) {
-    $errors = $grouping = array();
-    return $errors;
-  }
-
 
   /**
    * Defines from clause of the report SQL query
@@ -542,8 +527,7 @@ ORDER BY  cv.label
       foreach ($this->_reqPriceSets AS $priceset) {
         $pricesetId = array_pop(explode('_', $priceset));
         if (in_array($this->_entity, array('participant', 'contribution')))
-          if (!$this->checkPriceSetEntity($pricesetId, $entityId))
-            continue;
+          if ($entityId && !$this->checkPriceSetEntity($pricesetId, $entityId)) continue;
         $fieldlist = $this->getPriceFields($pricesetId, 'fieldlist');
 
         foreach ($fieldlist AS $pf) {
@@ -593,7 +577,7 @@ ORDER BY  cv.label
       if (strpos($tableName, 'civicrm_price_set') !== FALSE) {
         $pricesetId = array_pop(explode('_', $tableName));
 
-        // Check to see if price set is assigned to user selected event(s). 
+        // Check to see if price set is assigned to user selected event(s).
         // If not, remove the table from the clause and continue
         switch ($this->_entity) {
           case 'participant':
@@ -612,7 +596,7 @@ ORDER BY  cv.label
             break;
         }
         $pseId = $this->checkPriceSetEntity($pricesetId, $entityId);
-        if ($pseId == 0) {
+        if ($entityId && $pseId == 0) {
           unset($this->_columns[$tableName]);
           continue;
         }
@@ -972,7 +956,7 @@ ORDER BY  cv.label
       if (strpos($tableName, 'civicrm_price_set') !== FALSE) {
         $pricesetId = array_pop(explode('_', $tableName));
 
-        // Check to see if price set is assigned to user selected event(s). 
+        // Check to see if price set is assigned to user selected event(s).
         // If not, remove the table from the select clause and continue
         if ($this->checkPriceSetEntity($pricesetId, $entityId) == 0) {
           unset($this->_columns['tableName']);
